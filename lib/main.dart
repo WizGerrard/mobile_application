@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final bool isDarkMode = prefs.getBool('isDarkMode') ?? false;
+
+  runApp(MyApp(isDarkMode: isDarkMode));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isDarkMode;
+
+  const MyApp({super.key, required this.isDarkMode});
 
   @override
   Widget build(BuildContext context) {
@@ -13,6 +21,7 @@ class MyApp extends StatelessWidget {
       title: 'MY APP',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        brightness: isDarkMode ? Brightness.dark : Brightness.light,
         useMaterial3: true,
       ),
       home: const MyHomePage(),
@@ -29,12 +38,48 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
+  bool isDarkMode = false;
 
   static const List<Widget> _screens = <Widget>[
     SignInScreen(),
     SignUpScreen(),
     CalculatorScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    checkInternetConnectivity();
+    loadThemePreference();
+  }
+
+  Future<void> checkInternetConnectivity() async {
+    final ConnectivityResult result = await Connectivity().checkConnectivity();
+    if (result == ConnectivityResult.none) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No internet connection')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Connected to the internet')),
+      );
+    }
+  }
+
+  Future<void> loadThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isDarkMode = prefs.getBool('isDarkMode') ?? false;
+    });
+  }
+
+  void toggleTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isDarkMode = !isDarkMode;
+      prefs.setBool('isDarkMode', isDarkMode);
+    });
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -48,6 +93,12 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: const Text('MyApp.com'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: Icon(isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            onPressed: toggleTheme,
+          ),
+        ],
       ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -73,10 +124,10 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
-            UserAccountsDrawerHeader(
-              accountName: const Text('WIZ GERRARD'),
-              accountEmail: const Text('wizgerrard@gmail.com'),
-              currentAccountPicture: const CircleAvatar(
+            const UserAccountsDrawerHeader(
+              accountName: Text('WIZ GERRARD'),
+              accountEmail: Text('wizgerrard@gmail.com'),
+              currentAccountPicture: CircleAvatar(
                 backgroundImage: AssetImage('assets/wwww.jpeg'),
               ),
               decoration: BoxDecoration(
@@ -115,7 +166,7 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class SignInScreen extends StatelessWidget {
-  const SignInScreen({Key? key}) : super(key: key);
+  const SignInScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +210,7 @@ class SignInScreen extends StatelessWidget {
 }
 
 class SignUpScreen extends StatelessWidget {
-  const SignUpScreen({Key? key}) : super(key: key);
+  const SignUpScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +262,7 @@ class SignUpScreen extends StatelessWidget {
 }
 
 class CalculatorScreen extends StatelessWidget {
-  const CalculatorScreen({Key? key}) : super(key: key);
+  const CalculatorScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
